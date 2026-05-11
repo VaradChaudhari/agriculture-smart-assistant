@@ -35,7 +35,7 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        toast.error('Cannot connect to backend server. Please ensure the backend is running on localhost:5001 or use local development mode.');
+        toast.error('Cannot connect to backend server. Please check your internet connection or try again later.');
       } else if (error.response?.status === 401) {
         toast.error('Invalid email or password. Please try again.');
       } else {
@@ -299,7 +299,7 @@ export default function LoginPage() {
                   </p>
                 </div>
                 <p className="text-xs text-amber-600 mt-3 text-center">
-                  ⚠️ Backend must be running on localhost:5001 for login to work
+                    
                 </p>
               </div>
             </div>

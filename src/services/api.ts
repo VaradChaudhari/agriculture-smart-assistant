@@ -2,16 +2,13 @@ import axios from 'axios';
 import { STORAGE_KEYS } from '@/utils/constants';
 import type { User, DiseaseDetectionResult, WeatherData, Expert, MandiRate, Reminder, Consultation, DashboardStats } from '@/types';
 
-// Create axios instance
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-const LOCAL_API_BASE_URL = 'http://localhost:5001/api';
-console.log('[API] Using backend URL:', API_BASE_URL);
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
+const API = axios.create({
+  baseURL: `${import.meta.env.VITE_API_URL}/api`,
   withCredentials: true,
   timeout: 30000,
 });
+
+export default API;
 
 export const getApiErrorMessage = (error: unknown, fallback = 'Something went wrong. Please try again.'): string => {
   if (axios.isAxiosError(error)) {
@@ -26,13 +23,8 @@ export const getApiErrorMessage = (error: unknown, fallback = 'Something went wr
   return fallback;
 };
 
-const isLocalBrowser = () => {
-  if (typeof window === 'undefined') return false;
-  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
-};
-
 // Request interceptor to add token
-api.interceptors.request.use((config) => {
+API.interceptors.request.use((config) => {
   const token = sessionStorage.getItem(STORAGE_KEYS.TOKEN);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -41,24 +33,9 @@ api.interceptors.request.use((config) => {
 });
 
 // Response interceptor to handle errors
-api.interceptors.response.use(
+API.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (
-      error.code === 'ERR_NETWORK' &&
-      originalRequest &&
-      !originalRequest._retriedLocalBackend &&
-      API_BASE_URL !== LOCAL_API_BASE_URL &&
-      isLocalBrowser()
-    ) {
-      originalRequest._retriedLocalBackend = true;
-      originalRequest.baseURL = LOCAL_API_BASE_URL;
-      console.warn(`[API] ${API_BASE_URL} is unreachable. Retrying with ${LOCAL_API_BASE_URL}.`);
-      return api(originalRequest);
-    }
-
+  (error) => {
     if (error.response?.status === 401) {
       // Clear session on unauthorized
       sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -73,7 +50,7 @@ export const authAPI = {
   login: async (email: string, password: string): Promise<{ user: User; token: string }> => {
     console.log('[AuthAPI] Attempting login for:', email);
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await API.post('/auth/login', { email, password });
       console.log('[AuthAPI] Login response:', response.data);
       
       const { user, token } = response.data.data;
@@ -97,7 +74,7 @@ export const authAPI = {
     location: string;
     role?: string;
   }): Promise<{ user: User; token: string }> => {
-    const response = await api.post('/auth/register', userData);
+    const response = await API.post('/auth/register', userData);
     const { user, token } = response.data.data;
 
     sessionStorage.setItem(STORAGE_KEYS.TOKEN, token);
@@ -107,14 +84,14 @@ export const authAPI = {
   },
 
   logout: async (): Promise<void> => {
-    await api.post('/auth/logout');
+    await API.post('/auth/logout');
     sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
     sessionStorage.removeItem(STORAGE_KEYS.USER);
   },
 
   getCurrentUser: async (): Promise<User | null> => {
     try {
-      const response = await api.get('/auth/me');
+      const response = await API.get('/auth/me');
       return response.data.data;
     } catch (error) {
       return null;
@@ -133,7 +110,7 @@ export const diseaseAPI = {
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const response = await api.post('/disease/analyze', formData, {
+      const response = await API.post('/disease/analyze', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -153,7 +130,7 @@ export const diseaseAPI = {
 
   getDetectionHistory: async (): Promise<DiseaseDetectionResult[]> => {
     try {
-      const response = await api.get('/disease/scans');
+      const response = await API.get('/disease/scans');
       const scans = Array.isArray(response.data?.data) ? response.data.data : [];
       return scans.map((scan: any) => ({
         ...scan,
@@ -176,8 +153,8 @@ export const weatherAPI = {
   getWeather: async (location: string): Promise<WeatherData> => {
     try {
       const [weatherResponse, forecastResponse] = await Promise.allSettled([
-        api.get(`/weather/${encodeURIComponent(location)}`),
-        api.get(`/weather/forecast/${encodeURIComponent(location)}`),
+        API.get(`/weather/${encodeURIComponent(location)}`),
+        API.get(`/weather/forecast/${encodeURIComponent(location)}`),
       ]);
 
       if (weatherResponse.status === 'rejected') {
@@ -255,7 +232,7 @@ export const expertsAPI = {
     issueDescription: string;
     cropType: string;
   }): Promise<Consultation> => {
-    const response = await api.post('/experts/request', {
+    const response = await API.post('/experts/request', {
       issue: data.issueDescription,
       cropType: data.cropType,
       location: 'To be determined', // Would need to get from user
@@ -266,7 +243,7 @@ export const expertsAPI = {
   },
 
   getConsultations: async (farmerId: string): Promise<Consultation[]> => {
-    const response = await api.get('/experts/my-requests');
+    const response = await API.get('/experts/my-requests');
     return response.data.data.map((req: any) => ({
       id: req._id,
       expertId: req.assignedExpert?._id || '',
@@ -295,7 +272,7 @@ export const mandiAPI = {
       url = `/mandi/region/${encodeURIComponent(filters.location)}`;
     }
 
-    const response = await api.get(url);
+    const response = await API.get(url);
     return response.data.data.map((rate: any) => ({
       id: `${rate.crop}_${rate.market}_${Date.now()}`,
       cropName: rate.crop,
@@ -311,7 +288,7 @@ export const mandiAPI = {
 
   searchCrops: async (query: string): Promise<string[]> => {
     // Get all rates and extract unique crops
-    const response = await api.get('/mandi');
+    const response = await API.get('/mandi');
     const rawCrops: string[] = response.data.data.map((r: any) => r.crop);
     const crops: string[] = [...new Set(rawCrops)];
     return crops.filter((c: string) => c.toLowerCase().includes(query.toLowerCase()));
@@ -372,14 +349,14 @@ export const contactAPI = {
     subject: string;
     message: string;
   }): Promise<any> => {
-    const response = await api.post('/contact', data);
+    const response = await API.post('/contact', data);
     return response.data.data;
   },
 };
 
 export const careersAPI = {
   submitApplication: async (formData: FormData): Promise<any> => {
-    const response = await api.post('/careers/apply', formData, {
+    const response = await API.post('/careers/apply', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -390,7 +367,7 @@ export const careersAPI = {
 
 export const adminAPI = {
   getUsers: async (): Promise<User[]> => {
-    const response = await api.get('/users');
+    const response = await API.get('/users');
     return response.data.data.map((user: any) => ({
       id: user._id,
       fullName: user.fullName,
@@ -404,7 +381,7 @@ export const adminAPI = {
   },
 
   getUserById: async (id: string): Promise<User | null> => {
-    const response = await api.get(`/users/${id}`);
+    const response = await API.get(`/users/${id}`);
     const user = response.data.data;
     return {
       id: user._id,
@@ -419,7 +396,7 @@ export const adminAPI = {
   },
 
   updateUser: async (id: string, data: Partial<User>): Promise<User> => {
-    const response = await api.put(`/users/${id}`, data);
+    const response = await API.put(`/users/${id}`, data);
     const user = response.data.data;
     return {
       id: user._id,
@@ -434,11 +411,11 @@ export const adminAPI = {
   },
 
   deleteUser: async (id: string): Promise<void> => {
-    await api.delete(`/users/${id}`);
+    await API.delete(`/users/${id}`);
   },
 
   getAdminStats: async (): Promise<DashboardStats> => {
-    const response = await api.get('/users/stats');
+    const response = await API.get('/users/stats');
     const stats = response.data.data;
     return {
       totalUsers: stats.totalUsers,
