@@ -32,8 +32,15 @@ export default function LoginPage() {
       }
       
       navigate('/dashboard');
-    } catch (error) {
-      toast.error('Invalid email or password. Please try again.');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        toast.error('Cannot connect to backend server. Please ensure the backend is running on localhost:5001 or use local development mode.');
+      } else if (error.response?.status === 401) {
+        toast.error('Invalid email or password. Please try again.');
+      } else {
+        toast.error(error.response?.data?.message || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -275,11 +282,24 @@ export default function LoginPage() {
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4">
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-center mb-2">
-                  Demo Credentials
+                  Farmer Demo Account
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  <span className="font-medium">Email:</span> ramesh@example.com<br />
-                  <span className="font-medium">Password:</span> password
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    <span className="font-medium">Email:</span> ramesh@example.com
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    <span className="font-medium">Password:</span> password123
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    <span className="font-medium">Name:</span> Ramesh Patel
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    <span className="font-medium">Role:</span> Farmer
+                  </p>
+                </div>
+                <p className="text-xs text-amber-600 mt-3 text-center">
+                  ⚠️ Backend must be running on localhost:5001 for login to work
                 </p>
               </div>
             </div>

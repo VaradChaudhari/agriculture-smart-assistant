@@ -66,10 +66,6 @@ export function AppRoutes() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
         <Route path="/careers" element={<CareersPage />} />
-        {/* Guest preview routes */}
-        <Route path="/weather" element={<WeatherPage />} />
-        <Route path="/experts" element={<ExpertsPage />} />
-        <Route path="/mandi-rates" element={<MandiRatesPage />} />
       </Route>
 
       <Route element={<DashboardLayout />}>
@@ -86,6 +82,30 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <DiseaseDetectionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/weather"
+          element={
+            <ProtectedRoute>
+              <WeatherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/experts"
+          element={
+            <ProtectedRoute>
+              <ExpertsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mandi-rates"
+          element={
+            <ProtectedRoute>
+              <MandiRatesPage />
             </ProtectedRoute>
           }
         />

@@ -32,10 +32,15 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const app = express();
 
-// Middleware - CORS configured for Vercel frontend
+// Middleware - CORS configured for multiple frontend ports
 const allowedOrigins = [
-  'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:5173', // Vite default
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   'https://agriculture-smart-assistant.vercel.app',
   'https://agriculture-smart-assistant-*.vercel.app',
 ];
@@ -45,7 +50,11 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.match(/^https:\/\/agriculture-smart-assistant.*\.vercel\.app$/)) {
+    if (
+      allowedOrigins.indexOf(origin) !== -1 ||
+      origin.match(/^https:\/\/agriculture-smart-assistant.*\.vercel\.app$/) ||
+      origin.match(/^http:\/\/(localhost|127\.0\.0\.1):\d+$/)
+    ) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);

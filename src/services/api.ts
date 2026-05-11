@@ -4,12 +4,32 @@ import type { User, DiseaseDetectionResult, WeatherData, Expert, MandiRate, Remi
 
 // Create axios instance
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const LOCAL_API_BASE_URL = 'http://localhost:5001/api';
 console.log('[API] Using backend URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  timeout: 30000,
 });
+
+export const getApiErrorMessage = (error: unknown, fallback = 'Something went wrong. Please try again.'): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: string; error?: string } | undefined;
+    return data?.message || data?.error || error.message || fallback;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+const isLocalBrowser = () => {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
+};
 
 // Request interceptor to add token
 api.interceptors.request.use((config) => {
@@ -23,7 +43,22 @@ api.interceptors.request.use((config) => {
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.code === 'ERR_NETWORK' &&
+      originalRequest &&
+      !originalRequest._retriedLocalBackend &&
+      API_BASE_URL !== LOCAL_API_BASE_URL &&
+      isLocalBrowser()
+    ) {
+      originalRequest._retriedLocalBackend = true;
+      originalRequest.baseURL = LOCAL_API_BASE_URL;
+      console.warn(`[API] ${API_BASE_URL} is unreachable. Retrying with ${LOCAL_API_BASE_URL}.`);
+      return api(originalRequest);
+    }
+
     if (error.response?.status === 401) {
       // Clear session on unauthorized
       sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -94,41 +129,91 @@ export const authAPI = {
 
 export const diseaseAPI = {
   detectDisease: async (imageFile: File): Promise<DiseaseDetectionResult> => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
 
-    const response = await api.post('/disease/analyze', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+      const response = await api.post('/disease/analyze', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-    return response.data.data;
+      const data = response.data?.data || response.data;
+
+      if (!data || response.data?.success === false) {
+        throw new Error(response.data?.message || 'Disease analysis failed');
+      }
+
+      return data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Failed to analyze image.'));
+    }
   },
 
   getDetectionHistory: async (): Promise<DiseaseDetectionResult[]> => {
-    const response = await api.get('/disease/scans');
-    return response.data.data;
+    try {
+      const response = await api.get('/disease/scans');
+      const scans = Array.isArray(response.data?.data) ? response.data.data : [];
+      return scans.map((scan: any) => ({
+        ...scan,
+        id: scan.id || scan._id,
+        symptoms: Array.isArray(scan.symptoms) ? scan.symptoms : [],
+        causes: Array.isArray(scan.causes) ? scan.causes : [],
+        preventionTips: Array.isArray(scan.preventionTips) ? scan.preventionTips : [],
+        treatmentSuggestions: Array.isArray(scan.treatmentSuggestions) ? scan.treatmentSuggestions : [],
+        prevention: scan.prevention || '',
+        treatment: scan.treatment || '',
+        detectedAt: scan.detectedAt || scan.createdAt || new Date().toISOString(),
+      }));
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Failed to load disease scan history.'));
+    }
   },
 };
 
 export const weatherAPI = {
   getWeather: async (location: string): Promise<WeatherData> => {
-    const response = await api.get(`/weather/${encodeURIComponent(location)}`);
-    const data = response.data.data;
+    try {
+      const [weatherResponse, forecastResponse] = await Promise.allSettled([
+        api.get(`/weather/${encodeURIComponent(location)}`),
+        api.get(`/weather/forecast/${encodeURIComponent(location)}`),
+      ]);
 
-    return {
-      location: data.city,
-      current: {
-        temperature: data.temperature,
-        humidity: data.humidity,
-        windSpeed: data.windSpeed,
-        rainfall: data.rainfall || 0,
-        condition: data.description,
-        icon: data.icon,
-      },
-      forecast: [], // Could be extended to use forecast endpoint
-    };
+      if (weatherResponse.status === 'rejected') {
+        throw weatherResponse.reason;
+      }
+
+      const data = weatherResponse.value.data?.data || {};
+      const forecastData = forecastResponse.status === 'fulfilled'
+        ? forecastResponse.value.data?.data?.forecast
+        : [];
+
+      return {
+        location: data.city || location,
+        current: {
+          temperature: Number(data.temperature ?? 0),
+          humidity: Number(data.humidity ?? 0),
+          windSpeed: Number(data.windSpeed ?? 0),
+          rainfall: Number(data.rainfall ?? 0),
+          condition: data.description || 'Weather unavailable',
+          icon: data.icon || '02d',
+        },
+        forecast: Array.isArray(forecastData)
+          ? forecastData.map((item: any) => ({
+              day: item?.date || '',
+              temperature: Number(item?.temperature ?? 0),
+              condition: item?.description || 'Weather unavailable',
+              humidity: Number(item?.humidity ?? 0),
+              rainfall: Number(item?.rainfall ?? 0),
+              windSpeed: Number(item?.windSpeed ?? 0),
+              icon: item?.icon || '02d',
+            }))
+          : [],
+      };
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Failed to load weather data.'));
+    }
   },
 
   searchLocation: async (query: string): Promise<string[]> => {
@@ -145,7 +230,8 @@ export const weatherAPI = {
       'Jaipur, Rajasthan',
       'Lucknow, Uttar Pradesh',
     ];
-    return locations.filter((l: string) => l.toLowerCase().includes(query.toLowerCase()));
+    const normalizedQuery = query.toLowerCase();
+    return locations.filter((l: string) => l.toLowerCase().includes(normalizedQuery));
   },
 };
 

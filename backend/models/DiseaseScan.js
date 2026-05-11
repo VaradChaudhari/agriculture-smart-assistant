@@ -10,9 +10,15 @@ const diseaseScanSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  cropName: {
+    type: String,
+    default: 'Unknown crop',
+    trim: true,
+  },
   diseaseName: {
     type: String,
     required: true,
+    trim: true,
   },
   confidence: {
     type: Number,
@@ -20,13 +26,38 @@ const diseaseScanSchema = new mongoose.Schema({
     min: 0,
     max: 100,
   },
+  severity: {
+    type: String,
+    enum: ['Low', 'Medium', 'High'],
+    required: true,
+  },
+  symptoms: {
+    type: [String],
+    default: [],
+  },
+  causes: {
+    type: [String],
+    default: [],
+  },
+  preventionTips: {
+    type: [String],
+    default: [],
+  },
+  treatmentSuggestions: {
+    type: [String],
+    default: [],
+  },
   treatment: {
     type: String,
-    required: true,
+    default: '',
   },
   prevention: {
     type: String,
-    required: true,
+    default: '',
+  },
+  description: {
+    type: String,
+    default: '',
   },
   aiModel: {
     type: String,

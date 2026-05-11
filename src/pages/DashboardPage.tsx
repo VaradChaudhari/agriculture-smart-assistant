@@ -15,10 +15,10 @@ import {
   Eye,
   Thermometer,
 } from 'lucide-react';
-import { dashboardAPI, weatherAPI } from '@/services/api';
-import { mockDiseaseResults, mockMandiRates, mockActivities, mockConsultations } from '@/data/mockData';
+import { dashboardAPI, diseaseAPI, weatherAPI } from '@/services/api';
+import { mockMandiRates, mockActivities, mockConsultations } from '@/data/mockData';
 import { cn, formatNumber, formatCurrency, getRelativeTime, getSeverityColor } from '@/utils/helpers';
-import type { DashboardStats, WeatherData, Activity } from '@/types';
+import type { DashboardStats, DiseaseDetectionResult, WeatherData, Activity } from '@/types';
 import {
   AreaChart,
   Area,
@@ -44,18 +44,21 @@ const chartData = [
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [diseaseScans, setDiseaseScans] = useState<DiseaseDetectionResult[]>([]);
   const [activities] = useState<Activity[]>(mockActivities);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsData, weatherData] = await Promise.all([
-          dashboardAPI.getStats(),
-          weatherAPI.getWeather('Ahmedabad, Gujarat'),
+        const [statsData, weatherData, scansData] = await Promise.all([
+          dashboardAPI.getStats().catch(() => null),
+          weatherAPI.getWeather('Ahmedabad, Gujarat').catch(() => null),
+          diseaseAPI.getDetectionHistory().catch(() => []),
         ]);
-        setStats(statsData);
-        setWeather(weatherData);
+        setStats(statsData || null);
+        setWeather(weatherData || null);
+        setDiseaseScans(scansData);
       } finally {
         setIsLoading(false);
       }
@@ -151,12 +154,18 @@ export default function DashboardPage() {
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Recent Disease Scans</h3>
             <div className="space-y-4">
-              {mockDiseaseResults.slice(0, 3).map((result) => (
-                <div key={result.id} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <img src={result.imageUrl} alt={result.diseaseName} className="w-20 h-20 rounded-lg object-cover" />
+              {diseaseScans.length > 0 ? diseaseScans.slice(0, 3).map((result) => (
+                <div key={result.id || result._id} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  {result.imageUrl ? (
+                    <img src={result.imageUrl} alt={result.diseaseName} className="w-20 h-20 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                      <ScanLine className="w-8 h-8 text-emerald-500" />
+                    </div>
+                  )}
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900 dark:text-white">{result.diseaseName}</h4>
-                    <p className="text-sm text-gray-500">Detected {getRelativeTime(result.detectedAt)}</p>
+                    <p className="text-sm text-gray-500">Detected {getRelativeTime(result.detectedAt || result.createdAt || new Date().toISOString())}</p>
                     <div className="flex items-center space-x-2 mt-2">
                       <span className={cn('px-2 py-1 rounded-full text-xs font-medium', getSeverityColor(result.severity))}>
                         {result.severity.charAt(0).toUpperCase() + result.severity.slice(1)}
@@ -165,7 +174,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No disease scans yet. Upload a crop image to see real AI results here.
+                </p>
+              )}
             </div>
           </div>
         </div>

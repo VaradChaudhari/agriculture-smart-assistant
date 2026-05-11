@@ -56,7 +56,7 @@ export function getRelativeTime(date: string | Date): string {
 }
 
 export function getSeverityColor(severity: string): string {
-  switch (severity) {
+  switch (severity?.toLowerCase()) {
     case 'low':
       return 'text-green-500 bg-green-100';
     case 'medium':

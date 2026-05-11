@@ -34,6 +34,13 @@ const errorMiddleware = (err, req, res, next) => {
     error = { message, statusCode: 401 };
   }
 
+  if (err.name === 'MulterError') {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Uploaded file is too large. Maximum size is 10MB.'
+      : err.message;
+    error = { message, statusCode: 400 };
+  }
+
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Server Error',

@@ -6,7 +6,7 @@ const {
 } = require('../controllers/weatherController');
 
 // Public routes
-router.get('/:city', getWeather);
 router.get('/forecast/:city', getWeatherForecast);
+router.get('/:city', getWeather);
 
 module.exports = router;

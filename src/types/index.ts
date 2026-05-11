@@ -22,6 +22,7 @@ export interface DiseaseDetectionResult {
   _id?: string;
   user?: string;
   imageUrl?: string;
+  cropName?: string;
   diseaseName: string;
   confidence: number;
   severity: 'Low' | 'Medium' | 'High';
@@ -31,6 +32,7 @@ export interface DiseaseDetectionResult {
   treatmentSuggestions: string[];
   prevention: string;
   treatment: string;
+  description?: string;
   aiModel?: string;
   detectedAt: string;
   createdAt?: string;
@@ -51,6 +53,10 @@ export interface WeatherData {
     day: string;
     temperature: number;
     condition: string;
+    humidity?: number;
+    rainfall?: number;
+    windSpeed?: number;
+    icon?: string;
   }>;
 }
 
