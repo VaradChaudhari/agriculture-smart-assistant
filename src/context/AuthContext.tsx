@@ -33,39 +33,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
 
-      if (token) {
-        let user: User | null = null;
-
-        if (storedUser) {
-          try {
-            user = JSON.parse(storedUser) as User;
-          } catch {
-            user = null;
-          }
-        }
-
+      if (token && storedUser) {
         try {
-          const freshUser = await authAPI.getCurrentUser();
-          if (freshUser) {
-            user = freshUser;
-          }
-
-          if (user) {
-            setState({
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return;
-          }
+          const user = JSON.parse(storedUser) as User;
+          setState({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return;
         } catch {
-          // Fall back to stored user if available
+          // Invalid stored data, clear it
+          localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
         }
       }
 
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
       setState({
         user: null,
         token: null,

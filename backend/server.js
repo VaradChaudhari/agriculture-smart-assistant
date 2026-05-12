@@ -60,10 +60,10 @@ app.use(cors({
       return callback(null, true);
     }
 
-    console.log('CORS blocked origin:', origin);
-    return callback(new Error('Not allowed by CORS'), false);
+    console.log('CORS allowed origin:', origin);
+    return callback(null, true);
   },
-  credentials: true,
+  credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
   optionsSuccessStatus: 200,

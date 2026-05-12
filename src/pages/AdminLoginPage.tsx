@@ -22,8 +22,10 @@ export default function AdminLoginPage() {
     try {
       await adminLogin(formData.email, formData.password);
       navigate('/admin/dashboard');
-    } catch (error) {
-      toast.error('Invalid admin credentials');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Invalid admin credentials';
+      console.error('[AdminLoginPage] Error:', errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -3,8 +3,8 @@ import { STORAGE_KEYS } from '@/utils/constants';
 import type { User, DiseaseDetectionResult, WeatherData, Expert, MandiRate, Reminder, Consultation, DashboardStats } from '@/types';
 
 const API = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api`,
-  withCredentials: true,
+  baseURL: 'https://agriculture-smart-assistant.onrender.com/api',
+  withCredentials: false,
   timeout: 60000,
 });
 
