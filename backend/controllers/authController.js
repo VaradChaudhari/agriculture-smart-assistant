@@ -31,7 +31,7 @@ const register = async (req, res, next) => {
       password,
       mobileNumber,
       location,
-      role: role || 'farmer',
+      role: role || 'user',
     });
 
     // Generate token
