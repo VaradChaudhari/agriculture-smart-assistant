@@ -47,24 +47,31 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, server-to-server requests, or curl)
     if (!origin) return callback(null, true);
-    
-    if (
+
+    const isAllowed =
       allowedOrigins.indexOf(origin) !== -1 ||
-      origin.match(/^https:\/\/agriculture-smart-assistant.*\.vercel\.app$/) ||
-      origin.match(/^http:\/\/(localhost|127\.0\.0\.1):\d+$/)
-    ) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Allow all for now during development
+      /^https:\/\/agriculture-smart-assistant.*\.vercel\.app$/.test(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+      /^https:\/\/[\w-]+\.app\.github\.dev$/.test(origin);
+
+    if (isAllowed) {
+      return callback(null, true);
     }
+
+    console.log('CORS blocked origin:', origin);
+    return callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false,
 }));
+
+// Enable CORS preflight for all routes
+app.options('*', cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
