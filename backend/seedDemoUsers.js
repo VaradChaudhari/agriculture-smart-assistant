@@ -29,17 +29,14 @@ const demoUsers = [
 async function seedDemoUsers() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log('Connected to MongoDB');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected successfully');
 
     for (const userData of demoUsers) {
       // Check if user already exists
       const existingUser = await User.findOne({ email: userData.email });
       if (existingUser) {
-        console.log(`User ${userData.email} already exists, skipping...`);
+        console.log(`ℹ️  User ${userData.email} already exists, skipping...`);
         continue;
       }
 
@@ -54,16 +51,16 @@ async function seedDemoUsers() {
       });
 
       await newUser.save();
-      console.log(`Created demo user: ${userData.email}`);
+      console.log(`✅ Created demo user: ${userData.email} (${userData.role})`);
     }
 
-    console.log('Demo users seeding completed successfully!');
+    console.log('🎉 Demo users seeding completed successfully!');
   } catch (error) {
-    console.error('Error seeding demo users:', error);
+    console.error('❌ Error seeding demo users:', error);
   } finally {
     // Close the connection
     await mongoose.connection.close();
-    console.log('Database connection closed');
+    console.log('🔌 Database connection closed');
   }
 }
 
