@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const User = require('./models/User');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: './.env' });
 
 // Demo users data
 const demoUsers = [
