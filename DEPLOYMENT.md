@@ -30,16 +30,16 @@ git push -u origin main
 6. Click "Create Web Service"
 
 ### Step 3: Update Frontend API URL
-After backend is deployed, get the Render URL (e.g., `https://agriculture-smart-assistant-api.onrender.com`)
+After backend is deployed, get the Render URL (e.g., `https://agriculture-smart-assistant.onrender.com`)
 
 Update `src/services/api.ts`:
 ```typescript
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://your-render-url/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agriculture-smart-assistant.onrender.com/api';
 ```
 
 Or set environment variable in Vercel:
 ```
-VITE_API_URL=https://your-render-url/api
+VITE_API_URL=https://agriculture-smart-assistant.onrender.com
 ```
 
 ### Step 4: Redeploy Frontend

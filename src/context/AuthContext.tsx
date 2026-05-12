@@ -30,10 +30,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = sessionStorage.getItem(STORAGE_KEYS.TOKEN);
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
+
       if (token) {
+        let user: User | null = null;
+
+        if (storedUser) {
+          try {
+            user = JSON.parse(storedUser) as User;
+          } catch {
+            user = null;
+          }
+        }
+
         try {
-          const user = await authAPI.getCurrentUser();
+          const freshUser = await authAPI.getCurrentUser();
+          if (freshUser) {
+            user = freshUser;
+          }
+
           if (user) {
             setState({
               user,
@@ -41,19 +57,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               isAuthenticated: true,
               isLoading: false,
             });
-          } else {
-            sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-            sessionStorage.removeItem(STORAGE_KEYS.USER);
-            setState({ ...state, isLoading: false });
+            return;
           }
         } catch {
-          sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-          sessionStorage.removeItem(STORAGE_KEYS.USER);
-          setState({ ...state, isLoading: false });
+          // Fall back to stored user if available
         }
-      } else {
-        setState({ ...state, isLoading: false });
       }
+
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     };
 
     initAuth();

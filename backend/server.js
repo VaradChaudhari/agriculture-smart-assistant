@@ -42,7 +42,6 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'https://agriculture-smart-assistant.vercel.app',
-  'https://agriculture-smart-assistant-*.vercel.app',
 ];
 
 app.use(cors({
@@ -54,7 +53,8 @@ app.use(cors({
       allowedOrigins.indexOf(origin) !== -1 ||
       /^https:\/\/agriculture-smart-assistant.*\.vercel\.app$/.test(origin) ||
       /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
-      /^https:\/\/[\w-]+\.app\.github\.dev$/.test(origin);
+      /^https:\/\/[\w-]+\.app\.github\.dev$/.test(origin) ||
+      /^https:\/\/[\w-]+\.githubpreview\.dev$/.test(origin);
 
     if (isAllowed) {
       return callback(null, true);

@@ -5,7 +5,7 @@ import type { User, DiseaseDetectionResult, WeatherData, Expert, MandiRate, Remi
 const API = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api`,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 60000,
 });
 
 export default API;
@@ -25,7 +25,7 @@ export const getApiErrorMessage = (error: unknown, fallback = 'Something went wr
 
 // Request interceptor to add token
 API.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem(STORAGE_KEYS.TOKEN);
+  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -37,9 +37,9 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear session on unauthorized
-      sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-      sessionStorage.removeItem(STORAGE_KEYS.USER);
+      // Clear stored auth on unauthorized
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -55,9 +55,9 @@ export const authAPI = {
       
       const { user, token } = response.data.data;
 
-      sessionStorage.setItem(STORAGE_KEYS.TOKEN, token);
-      sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-      console.log('[AuthAPI] Token and user saved to sessionStorage');
+      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      console.log('[AuthAPI] Token and user saved to localStorage');
 
       return { user, token };
     } catch (error: any) {
@@ -77,16 +77,16 @@ export const authAPI = {
     const response = await API.post('/auth/register', userData);
     const { user, token } = response.data.data;
 
-    sessionStorage.setItem(STORAGE_KEYS.TOKEN, token);
-    sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
     return { user, token };
   },
 
   logout: async (): Promise<void> => {
     await API.post('/auth/logout');
-    sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
   },
 
   getCurrentUser: async (): Promise<User | null> => {
